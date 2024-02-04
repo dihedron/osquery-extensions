@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"log"
 	"os/exec"
+	"strings"
 
 	"github.com/osquery/osquery-go"
 	"github.com/osquery/osquery-go/plugin/table"
@@ -59,20 +60,27 @@ func SnapPackagesGenerate(ctx context.Context, queryContext table.QueryContext) 
 		log.Fatalf("cmd.Run() failed with %s:\n%s\n", err, stderr.String())
 	}
 
+	result := []map[string]string{}
+
 	scanner := bufio.NewScanner(bytes.NewReader(stdout.Bytes()))
 	for scanner.Scan() {
-		fmt.Println(scanner.Text())
-		//strings.Split(scanner.Text())
+		//fmt.Println(scanner.Text())
+		tokens := []string{}
+		for _, token := range strings.Split(scanner.Text(), " ") {
+			if len(strings.TrimSpace(token)) > 0 {
+				tokens = append(tokens, strings.TrimSpace(token))
+			}
+		}
+		fmt.Printf("line: %v\n", strings.Join(tokens, ","))
+		result = append(result, map[string]string{
+			"name":       tokens[0],
+			"version":    tokens[1],
+			"revision":   tokens[2],
+			"tracking":   tokens[3],
+			"pubblisher": tokens[4],
+			"notes":      tokens[5],
+		})
 	}
 
-	return []map[string]string{
-		{
-			"foo": "bar",
-			"baz": "baz",
-		},
-		{
-			"foo": "bar",
-			"baz": "baz",
-		},
-	}, nil
+	return result, nil
 }

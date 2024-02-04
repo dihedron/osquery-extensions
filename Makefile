@@ -40,6 +40,9 @@ default: linux/amd64 ;
 		fi; \
 	done
 
+.PHONY: install
+install: linux/amd64
+	@mv dist/linux/amd64/osquery-snaps ~/Public
 
 .PHONY: clean
 clean:
