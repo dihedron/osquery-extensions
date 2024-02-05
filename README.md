@@ -24,7 +24,7 @@ It will undo the install process by removing the binary from the extensions dire
 
 ## How to add more tables
 
-Each table is defined by the following `struct`:
+Each table is defined by instantiating the following `struct`:
 
 ```golang
 type Table struct {
@@ -36,7 +36,28 @@ type Table struct {
 
 where the `Columns` function returns the list of columns in the table, and `Data` returns the list of records (each as a `map[string]string`).
 
-In order to register the table, add it it the following variable in `main.go`:
+For instance, the `snap_packages` table is implemented by defining the following `struct` (see `plugin/snap/packages.go`):
+
+```golang
+var Packages = &plugin.Table{
+	Name: "snap_packages",
+	Columns: func() []table.ColumnDefinition {
+		return []table.ColumnDefinition{
+			table.TextColumn("name"),
+			table.TextColumn("version"),
+			table.TextColumn("revision"),
+			table.TextColumn("tracking"),
+			table.TextColumn("publisher"),
+			table.TextColumn("notes"),
+		}
+	},
+	Data: listPackages,
+}
+```
+
+where `listPackages` is the actual workhorse.
+
+In order to register the new table, add it to the following variable in `main.go`:
 
 ```golang
 var tables = []*plugin.Table{
@@ -44,6 +65,5 @@ var tables = []*plugin.Table{
 	// add your tables here...
 }
 ```
-
 
 See `plugin/snap/Packages` for an example.
