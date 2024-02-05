@@ -12,6 +12,7 @@ import (
 
 var tables = []*plugin.Table{
 	snap.Packages,
+	// add your tables here...
 }
 
 func init() {
