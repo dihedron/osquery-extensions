@@ -22,6 +22,17 @@ $> sudo make uninstall
 
 It will undo the install process by removing the binary from the extensions directory and unregistering it from the auto-load configuration file.
 
+
+## How to run the extension
+
+In order to run the extension, you need to specify an additional flag on the command line:
+
+```bash
+$> osqueryi --extensions_autoload=/etc/osquery/extensions.load
+```
+
+which will point the OSQuery CLI to auto-load the extensions in the configuration file.
+
 ## How to add more tables
 
 Each table is defined by instantiating the following `struct`:
