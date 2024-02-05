@@ -1,86 +1,54 @@
 package main
 
 import (
-	"bufio"
-	"bytes"
-	"context"
 	"flag"
-	"fmt"
-	"log"
-	"os/exec"
-	"strings"
+	"log/slog"
+	"os"
 
+	"github.com/dihedron/osquery-extensions/plugin"
+	"github.com/dihedron/osquery-extensions/plugin/snap"
 	"github.com/osquery/osquery-go"
-	"github.com/osquery/osquery-go/plugin/table"
 )
 
+var tables = []*plugin.Table{
+	snap.Packages,
+}
+
+func init() {
+	options := &slog.HandlerOptions{
+		Level:     slog.LevelWarn,
+		AddSource: true,
+	}
+	handler := slog.NewTextHandler(os.Stderr, options)
+	slog.SetDefault(slog.New(handler))
+}
+
 func main() {
-	socket := flag.String("socket", "", "Path to osquery socket file")
+	socket := flag.String("socket", "", "Path to OSquery socket file")
+	timeout := flag.String("timeout", "", "OSquery timeout (for exponential backoff)")
+	interval := flag.String("interval", "", "OSquery timeout (for exponential backoff)")
+	verbose := flag.Bool("verbose", false, "OSquery extensions log verbosity")
 	flag.Parse()
-	if *socket == "" {
-		//log.Fatalf(`Usage: %s --socket SOCKET_PATH`, os.Args[0])
-		SnapPackagesGenerate(context.Background(), table.QueryContext{})
-	}
 
-	server, err := osquery.NewExtensionManagerServer("snaps", *socket)
+	slog.Debug("application starting", "socket", socket, "timeout", timeout, "interval", interval, "verbose", verbose)
+
+	// start the extensions manager
+	server, err := osquery.NewExtensionManagerServer("extensions", *socket)
 	if err != nil {
-		log.Fatalf("Error creating extension: %s\n", err)
+		slog.Error("error creating extension", "error", err)
+		os.Exit(1)
 	}
 
-	// Create and register a new table plugin with the server.
-	// table.NewPlugin requires the table plugin name,
-	// a slice of Columns and a Generate function.
-	server.RegisterPlugin(table.NewPlugin("snap_packages", SnapPackagesColumns(), SnapPackagesGenerate))
+	slog.Debug("extension manager ready")
+
+	// register the tables
+	for _, table := range tables {
+		slog.Debug("registering table...", "name", table.Name)
+		table.Register(server)
+	}
+
+	// run the server
 	if err := server.Run(); err != nil {
-		log.Fatalln(err)
+		slog.Error("error running the extension manager", "error", err)
 	}
-}
-
-// FoobarColumns returns the columns that our table will return.
-func SnapPackagesColumns() []table.ColumnDefinition {
-	return []table.ColumnDefinition{
-		table.TextColumn("name"),
-		table.TextColumn("version"),
-		table.TextColumn("revision"),
-		table.TextColumn("tracking"),
-		table.TextColumn("publisher"),
-		table.TextColumn("notes"),
-	}
-}
-
-// SnapPackagesGenerate will be called whenever the table is queried. It should return
-// a full table scan.
-func SnapPackagesGenerate(ctx context.Context, queryContext table.QueryContext) ([]map[string]string, error) {
-
-	cmd := exec.Command("/usr/bin/snap", "list", "--all")
-	var stdout, stderr bytes.Buffer
-	cmd.Stdout = &stdout
-	cmd.Stderr = &stderr
-	if err := cmd.Run(); err != nil {
-		log.Fatalf("cmd.Run() failed with %s:\n%s\n", err, stderr.String())
-	}
-
-	result := []map[string]string{}
-
-	scanner := bufio.NewScanner(bytes.NewReader(stdout.Bytes()))
-	for scanner.Scan() {
-		//fmt.Println(scanner.Text())
-		tokens := []string{}
-		for _, token := range strings.Split(scanner.Text(), " ") {
-			if len(strings.TrimSpace(token)) > 0 {
-				tokens = append(tokens, strings.TrimSpace(token))
-			}
-		}
-		fmt.Printf("line: %v\n", strings.Join(tokens, ","))
-		result = append(result, map[string]string{
-			"name":       tokens[0],
-			"version":    tokens[1],
-			"revision":   tokens[2],
-			"tracking":   tokens[3],
-			"pubblisher": tokens[4],
-			"notes":      tokens[5],
-		})
-	}
-
-	return result, nil
 }

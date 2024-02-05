@@ -1,4 +1,4 @@
-module github.com/dihedron/osquery-snaps
+module github.com/dihedron/osquery-extensions
 
 go 1.21.5
 

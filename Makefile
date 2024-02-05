@@ -1,6 +1,6 @@
 
-NAME := osquery-snaps
-DESCRIPTION := OSQury plugin to expose Snap packages as a table.
+NAME := osquery-extensions
+DESCRIPTION := OSQuery plugin to extends the base available tables.
 COPYRIGHT := 2024 © Andrea Funtò
 LICENSE := MIT
 LICENSE_URL := https://opensource.org/license/mit/
@@ -8,10 +8,13 @@ VERSION_MAJOR := 0
 VERSION_MINOR := 0
 VERSION_PATCH := 1
 
+SHELL := /bin/bash
+
 platforms="$$(go tool dist list)"
 module := $$(grep "module .*" go.mod | sed 's/module //gi')
 package := $(module)/commands/version
 now := $$(date --rfc-3339=seconds)
+extensions_dir := /usr/lib/osquery/extensions
 
 
 #
@@ -40,15 +43,31 @@ default: linux/amd64 ;
 		fi; \
 	done
 
-.PHONY: install
-install: linux/amd64
-	@mv dist/linux/amd64/osquery-snaps ~/Public
-
 .PHONY: clean
 clean:
 	@rm -rf dist
 
-platforms="$$(go tool dist list)"
-module := $$(grep "module .*" go.mod | sed 's/module //gi')
-package := $(module)/commands/version
-now := $$(date --rfc-3339=seconds)
+.PHONY: install
+install:
+ifneq ($(shell id -u), 0)
+	@echo "You must be root to perform this action."
+else
+	@mkdir -p $(extensions_dir)
+	@cp dist/linux/amd64/osquery-extensions $(extensions_dir)/osquery-extensions.ext
+	@chmod 755 $(extensions_dir)/osquery-extensions.ext
+	@touch /etc/osquery/extensions.load
+	@chmod 644 /etc/osquery/extensions.load
+	@sudo grep -qxF "$(extensions_dir)/osquery-extensions.ext" /etc/osquery/extensions.load || sudo echo "$(extensions_dir)/osquery-extensions.ext" >> /etc/osquery/extensions.load
+endif
+
+.PHONY: uninstall
+uninstall:
+ifneq ($(shell id -u), 0)
+	@echo "You must be root to perform this action."
+else
+	@rm -rf $(extensions_dir)/osquery-extensions.ext
+	@sed -i '/osquery-extensions.ext/d' /etc/osquery/extensions.load
+endif
+
+
+
