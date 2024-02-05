@@ -33,6 +33,12 @@ $> osqueryi --extensions_autoload=/etc/osquery/extensions.load
 
 which will point the OSQuery CLI to auto-load the extensions in the configuration file.
 
+Otherwise you can more simply run:
+
+```bash
+$> make run
+```
+
 ## How to add more tables
 
 Each table is defined by instantiating the following `struct`:

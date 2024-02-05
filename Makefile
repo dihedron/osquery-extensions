@@ -60,6 +60,10 @@ else
 	@sudo grep -qxF "$(extensions_dir)/osquery-extensions.ext" /etc/osquery/extensions.load || sudo echo "$(extensions_dir)/osquery-extensions.ext" >> /etc/osquery/extensions.load
 endif
 
+.PHONY: run
+run:
+	@osqueryi --extensions_autoload=/etc/osquery/extensions.load --extensions_timeout=3 --extensions_interval=3
+
 .PHONY: uninstall
 uninstall:
 ifneq ($(shell id -u), 0)
